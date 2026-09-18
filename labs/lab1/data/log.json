@@ -1,0 +1,222 @@
+[
+    {
+        "event": "login",
+        "user": "admin",
+        "result": "success",
+        "timestamp": "2026-09-16 12:04:21",
+        "args": [
+            "admin",
+            "S0cial@Engineer"
+        ],
+        "kwargs": {}
+    },
+    {
+        "event": "login",
+        "user": "user1",
+        "result": "error",
+        "timestamp": "2026-09-16 12:04:21",
+        "args": [
+            "user1",
+            "WrongPass"
+        ],
+        "kwargs": {}
+    },
+    {
+        "event": "login",
+        "user": "admin",
+        "result": "success",
+        "timestamp": "2026-09-16 12:06:20",
+        "args": [
+            "admin",
+            "S0cial@Engineer"
+        ],
+        "kwargs": {}
+    },
+    {
+        "event": "login",
+        "user": "user1",
+        "result": "failure",
+        "timestamp": "2026-09-16 12:06:20",
+        "args": [
+            "user1",
+            "WrongPass"
+        ],
+        "kwargs": {}
+    },
+    {
+        "event": "login",
+        "user": "admin",
+        "result": "success",
+        "timestamp": "2026-09-16 09:09:49",
+        "args": [
+            "admin",
+            "S0cial@Engineer"
+        ],
+        "kwargs": {}
+    },
+    {
+        "event": "login",
+        "user": "user1",
+        "result": "failure",
+        "timestamp": "2026-09-16 09:09:49",
+        "args": [
+            "user1",
+            "WrongPass"
+        ],
+        "kwargs": {}
+    },
+    {
+        "event": "login",
+        "user": "admin",
+        "result": "success",
+        "timestamp": "2026-09-16 09:10:49",
+        "args": [
+            "admin",
+            "S0cial@Engineer"
+        ],
+        "kwargs": {}
+    },
+    {
+        "event": "login",
+        "user": "user1",
+        "result": "failure",
+        "timestamp": "2026-09-16 09:10:49",
+        "args": [
+            "user1",
+            "WrongPass"
+        ],
+        "kwargs": {}
+    },
+    {
+        "event": "login",
+        "user": "admin",
+        "result": "success",
+        "timestamp": "2026-09-16 10:38:49",
+        "args": [
+            "admin",
+            "S0cial@Engineer"
+        ],
+        "kwargs": {}
+    },
+    {
+        "event": "login",
+        "user": "user1",
+        "result": "failure",
+        "timestamp": "2026-09-16 10:38:49",
+        "args": [
+            "user1",
+            "WrongPass"
+        ],
+        "kwargs": {}
+    },
+    {
+        "event": "login",
+        "user": "admin",
+        "result": "success",
+        "timestamp": "2026-09-16 10:43:52",
+        "args": [
+            "admin",
+            "S0cial@Engineer"
+        ],
+        "kwargs": {}
+    },
+    {
+        "event": "login",
+        "user": "user1",
+        "result": "failure",
+        "timestamp": "2026-09-16 10:43:52",
+        "args": [
+            "user1",
+            "WrongPass"
+        ],
+        "kwargs": {}
+    },
+    {
+        "event": "login",
+        "user": "admin",
+        "result": "success",
+        "timestamp": "2026-09-16 10:44:11",
+        "args": [
+            "admin",
+            "S0cial@Engineer"
+        ],
+        "kwargs": {}
+    },
+    {
+        "event": "login",
+        "user": "user1",
+        "result": "failure",
+        "timestamp": "2026-09-16 10:44:11",
+        "args": [
+            "user1",
+            "WrongPass"
+        ],
+        "kwargs": {}
+    },
+    {
+        "event": "login",
+        "user": "admin",
+        "result": "success",
+        "timestamp": "2026-09-16 10:48:16",
+        "args": [
+            "admin",
+            "S0cial@Engineer"
+        ],
+        "kwargs": {}
+    },
+    {
+        "event": "login",
+        "user": "user1",
+        "result": "failure",
+        "timestamp": "2026-09-16 10:48:16",
+        "args": [
+            "user1",
+            "WrongPass"
+        ],
+        "kwargs": {}
+    },
+    {
+        "event": "login",
+        "user": "admin",
+        "result": "success",
+        "timestamp": "2026-09-16 10:52:22",
+        "args": [
+            "admin",
+            "S0cial@Engineer"
+        ],
+        "kwargs": {}
+    },
+    {
+        "event": "login",
+        "user": "user1",
+        "result": "failure",
+        "timestamp": "2026-09-16 10:52:22",
+        "args": [
+            "user1",
+            "WrongPass"
+        ],
+        "kwargs": {}
+    },
+    {
+        "event": "login",
+        "user": "admin",
+        "result": "success",
+        "timestamp": "2026-09-18 08:39:22",
+        "args": [
+            "admin",
+            "S0cial@Engineer"
+        ],
+        "kwargs": {}
+    },
+    {
+        "event": "login",
+        "user": "user1",
+        "result": "failure",
+        "timestamp": "2026-09-18 08:39:22",
+        "args": [
+            "user1",
+            "WrongPass"
+        ],
+        "kwargs": {}
+    }
+]
