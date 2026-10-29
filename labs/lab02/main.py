@@ -1,72 +1,112 @@
+"""Точка входу ЛР №2: команди demo (Завдання 1) та analyze (Завдання 2).
+
+python -m labs.lab02.main demo
+python -m labs.lab02.main analyze [--certs-data ...] [--days-warning N] ...
+"""
+
 import sys
+from datetime import timedelta
 
-from labs.lab02.task1 import Admin, User, UserAccount
-from labs.lab02.task2 import main as run_task2
+from labs.lab02.task1 import SESSION_TIMEOUT_SEC, Admin, User, UserAccount
+from labs.lab02.task2 import main as run_analyze
 
 
-def run_demo():
+def run_demo() -> None:
     print("=== ДЕМОНСТРАЦІЯ ЗАВДАННЯ 1 (ООП) ===")
 
-    # 1. Створення користувача та встановлення пароля
     user = User(username="j_doe", email="j_doe@corp.ua", role="User")
     user.set_password("SecurePassword123!")
     account = UserAccount(user)
 
-    # 2. Успішна та невдала спроба входу
-    print("\n--- Перевірка автентифікації ---")
+    print("\n--- Автентифікація ---")
     print(
-        "Спроба входу з неправильним паролем:",
+        "Вхід з неправильним паролем:",
         account.login("j_doe", "wrong_pass", "192.168.1.10"),
     )
     print(
-        "Спроба входу з правильним паролем:",
+        "Вхід з правильним паролем:",
         account.login("j_doe", "SecurePassword123!", "192.168.1.10"),
     )
-    print("Статус автентифікації:", account.is_authenticated())
+    print("Автентифіковано:", account.is_authenticated())
+    print(
+        "Пароль у відкритому вигляді не зберігається:",
+        "SecurePassword123!" not in vars(user).values(),
+    )
 
-    # 3. Валідація email через @property
-    print("\n--- Зміна Email ---")
-    try:
-        user.email = "invalid-email"
-    except ValueError as e:
-        print("Помилка валідації email (очікувано):", e)
+    print("\n--- Зміна email із валідацією ---")
+    for candidate in ("invalid-email", "1john@corp.ua", "john.doe@corp.ua"):
+        try:
+            user.email = candidate
+        except ValueError as error:
+            print("Відхилено:", error)
+    user.email = "john_doe@corp.ua"
+    print("Новий email:", user.email)
 
-    user.email = "john.doe@corp.ua"
-    print("Новий email успішно встановлено:", user.email)
-
-    # 4. Демонстрація класу Admin (наслідування)
-    print("\n--- Адміністратор та права ---")
+    print("\n--- Адміністратор і права (наслідування) ---")
     admin = Admin(
         username="admin_sys", email="admin@corp.ua", permissions=["read", "write"]
     )
     admin.grant_permission("delete")
+    admin.revoke_permission("write")
     print(admin)
-    print("Чи є право 'delete'?:", admin.has_permission("delete"))
+    print(
+        "Право 'delete':",
+        admin.has_permission("delete"),
+        "| право 'write':",
+        admin.has_permission("write"),
+    )
 
-    # 5. Вихід із системи та перегляд AuditLog
-    print("\n--- Завершення сесії та Audit Log ---")
+    print("\n--- Доступ через __getitem__ / __setitem__ ---")
+    print("account['user'] ->", account["user"])
+    for action in (
+        lambda: account["password_hash"],
+        lambda: account.__setitem__("user", "admin"),
+    ):
+        try:
+            action()
+        except (KeyError, TypeError) as error:
+            print(f"{type(error).__name__}: {error}")
+
+    print("\n--- Завершення сеансу за таймаутом ---")
+    print(f"SESSION_TIMEOUT_SEC = {SESSION_TIMEOUT_SEC}")
+    # Імітуємо бездіяльність довшу за таймаут, зсунувши час останньої активності
+    account["session"].last_activity -= timedelta(seconds=SESSION_TIMEOUT_SEC + 1)
+    print("Автентифіковано після бездіяльності:", account.is_authenticated())
+    print("Повторна перевірка не подовжує сеанс:", account.is_authenticated())
+
+    print("\n--- Новий вхід і вихід із системи ---")
+    print("Вхід:", account.login("j_doe", "SecurePassword123!", "192.168.1.10"))
     account.logout()
-    print("Статус після logout:", account.is_authenticated())
+    print("Автентифіковано після logout:", account.is_authenticated())
+
+    print("\n--- Неактивний користувач ---")
+    user.deactivate()
+    print(
+        "Вхід деактивованого користувача:",
+        account.login("j_doe", "SecurePassword123!", "192.168.1.10"),
+    )
+
+    print("\n--- AuditLog ---")
     account["audit_log"].show_all()
 
 
-def main():
-    if len(sys.argv) < 2:
+def main(argv: list[str] | None = None) -> int:
+    args = sys.argv[1:] if argv is None else argv
+    if not args or args[0] not in ("demo", "analyze"):
         print("Використання:")
         print("  python -m labs.lab02.main demo")
-        print("  python -m labs.lab02.main analyze [аргументи]")
-        return
-
-    command = sys.argv[1]
-    if command == "demo":
+        print(
+            "  python -m labs.lab02.main analyze [--certs-data PATH] [--days-warning N]"
+        )
+        print(
+            "                                    [--output-report PATH] [--format csv|json]"
+        )
+        return 2
+    if args[0] == "demo":
         run_demo()
-    elif command == "analyze":
-        # Передаємо решту аргументів у task2
-        sys.argv = [sys.argv[0]] + sys.argv[2:]
-        run_task2()
-    else:
-        print(f"Невідома команда: {command}")
+        return 0
+    return run_analyze(args[1:])
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

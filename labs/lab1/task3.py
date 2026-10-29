@@ -17,6 +17,7 @@ PERSONAL_SALT = str(VARIANT_NUMBER).zfill(5)
 
 
 class ValidationError(Exception):
+    """Помилка перевірки вхідних даних."""
 
 
 def log_event(func):
@@ -150,7 +151,7 @@ def run_task3():
         ("guest", "standard1234"),
         ("auditor", "Audit@Pass2026"),
         ("support", "HelpDesk@123"),
-        ("ceo", "VeryStrongPass!")
+        ("ceo", "VeryStrongPass!"),
     )
 
     create_users(users_to_register)

@@ -1,194 +1,266 @@
+"""Завдання 2 (варіант 10): монітор термінів дії SSL/TLS сертифікатів."""
+
 import argparse
 import csv
 import json
 import logging
 import re
 from collections import Counter
-from datetime import datetime, timezone
+from dataclasses import asdict, dataclass
+from datetime import date, datetime, timezone
 from pathlib import Path
 
-# Налаштування локального логгера (без LOG015 попереджень)
-logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("ssl_monitor")
+
+DEFAULT_CERTS = Path("labs/lab02/data/data_v10/certificates.json")
+DEFAULT_REPORT = Path("labs/lab02/data/ssl_expiry_report.csv")
+
+# Застарілі алгоритми підпису: SHA-1 та MD5
+WEAK_SIGNATURE = re.compile(r"sha-?1(?!\d)|md5", re.IGNORECASE)
+ECDSA_SIGNATURE = re.compile(r"ecdsa", re.IGNORECASE)
+# Мінімальна довжина ключа, біти
+MIN_RSA_KEY = 2048
+MIN_ECDSA_KEY = 256
+
+FIELDS = [
+    "Domain",
+    "Issuer",
+    "ValidTo",
+    "DaysLeft",
+    "Status",
+    "KeyLength",
+    "SignatureAlg",
+    "Issues",
+]
 
 
-def parse_date(date_val) -> datetime:
-    """Гнучке перетворення дати у datetime-об'єкт із часовим поясом UTC."""
-    if not date_val:
-        return datetime.now(timezone.utc)
+@dataclass
+class CertResult:
+    """Результат перевірки одного сертифіката."""
 
-    if isinstance(date_val, (int, float)):
-        return datetime.fromtimestamp(date_val, tz=timezone.utc)
+    Domain: str
+    Issuer: str
+    ValidTo: str
+    DaysLeft: int | None
+    Status: str
+    KeyLength: int | None
+    SignatureAlg: str
+    Issues: str
 
-    date_str = str(date_val).strip()
 
+def normalize_keys(record: dict) -> dict:
+    """validTo, Valid_To, valid to -> validto: стійкість до стилю назв полів."""
+    return {re.sub(r"[^a-z0-9]", "", str(k).lower()): v for k, v in record.items()}
+
+
+def pick(record: dict, *names: str):
+    for name in names:
+        value = record.get(name)
+        if value not in (None, ""):
+            return value
+    return None
+
+
+def parse_date(value) -> date | None:
+    """Дата закінчення як date; None, якщо значення відсутнє або некоректне."""
+    if value is None:
+        return None
+    text = str(value).strip()
     try:
-        dt = datetime.fromisoformat(date_str.replace("Z", "+00:00"))
-        if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=timezone.utc)
-        return dt
+        return datetime.fromisoformat(text.replace("Z", "+00:00")).date()
     except ValueError:
         pass
-
-    formats = [
-        "%Y-%m-%d",
-        "%Y-%m-%d %H:%M:%S",
-        "%d-%m-%Y",
-        "%d/%m/%Y",
-        "%Y/%m/%d",
-    ]
-    for fmt in formats:
+    for fmt in ("%d.%m.%Y", "%d/%m/%Y", "%Y/%m/%d"):
         try:
-            dt = datetime.strptime(date_str, fmt)  # noqa: DTZ007
-            return dt.replace(tzinfo=timezone.utc)
+            return datetime.strptime(text, fmt).replace(tzinfo=timezone.utc).date()
         except ValueError:
             continue
+    return None
 
-    logger.warning(
-        f"Неможливо розпарсити дату: {date_str}. Використовується поточний час."
+
+def evaluate(cert: dict, today: date, days_warning: int) -> CertResult:
+    """Розрахувати дні до закінчення, статус і слабкі місця сертифіката."""
+    rec = normalize_keys(cert)
+    domain = str(pick(rec, "domain", "host", "cn") or "Unknown")
+    issuer = str(pick(rec, "issuer") or "Unknown")
+    sig_alg = str(
+        pick(rec, "signaturealgorithm", "signaturealg", "algorithm") or "Unknown"
     )
-    return datetime.now(timezone.utc)
+    raw_valid_to = pick(rec, "validto", "notafter", "validuntil", "expirationdate")
+    valid_to = parse_date(raw_valid_to)
 
+    raw_key = pick(rec, "keylength", "keysize", "keybits")
+    try:
+        key_length = int(raw_key) if raw_key is not None else None
+    except (TypeError, ValueError):
+        key_length = None
 
-def analyze_ssl_certificates(
-    certs_file: str, days_warning: int, output_file: str, fmt: str
-):
-    path = Path(certs_file)
-    if not path.exists():
-        logger.error(f"Файл {certs_file} не знайдено.")
-        return
-
-    logger.info(f"Loading SSL certificates data from {certs_file}...")
-    with open(path, "r", encoding="utf-8") as f:
-        certs_data = json.load(f)
-
-    logger.info(f"Audited {len(certs_data)} domain certificates.\n")
-
-    now = datetime.now(timezone.utc)
-    issuers = Counter()
-    results = []
-
-    expired_count = 0
-    warning_count = 0
-
-    print("=== Certificate Expiry & Safety Status ===")
-    print(
-        f"{'Domain':<22} {'Issuer':<15} {'Days Left':<12} {'Status':<10} {'Signature Alg'}"
-    )
-    print("-" * 75)
-
-    weak_alg_pattern = re.compile(r"sha1|md5", re.IGNORECASE)
-
-    for cert in certs_data:
-        domain = cert.get("Domain") or cert.get("domain") or "Unknown"
-        issuer = cert.get("Issuer") or cert.get("issuer") or "Unknown"
-
-        raw_valid_to = (
-            cert.get("ValidTo")
-            or cert.get("valid_to")
-            or cert.get("Valid_To")
-            or cert.get("valid_until")
-            or cert.get("expiration_date")
+    issues = []
+    if valid_to is None:
+        days_left = None
+        status = "INVALID"
+        issues.append("no valid expiry date")
+        logger.warning(
+            "%s: некоректна або відсутня дата validTo (%r)", domain, raw_valid_to
         )
-        valid_to = parse_date(raw_valid_to)
-
-        sig_alg = (
-            cert.get("SignatureAlg")
-            or cert.get("signature_alg")
-            or cert.get("Signature Algorithm")
-            or cert.get("algorithm")
-            or "Unknown"
-        )
-
-        issuers[issuer] += 1
-
-        days_left = (valid_to - now).days
-
+    else:
+        days_left = (valid_to - today).days  # різниця дат -> timedelta
         if days_left < 0:
             status = "EXPIRED"
-            expired_count += 1
         elif days_left <= days_warning:
             status = "WARNING"
-            warning_count += 1
         else:
             status = "OK"
 
-        if weak_alg_pattern.search(str(sig_alg)):
-            sig_alg_display = f"{sig_alg} (WEAK)"
-        else:
-            sig_alg_display = str(sig_alg)
+    if WEAK_SIGNATURE.search(sig_alg):
+        issues.append("weak signature")
+    min_key = MIN_ECDSA_KEY if ECDSA_SIGNATURE.search(sig_alg) else MIN_RSA_KEY
+    if key_length is None:
+        issues.append("unknown key length")
+    elif key_length < min_key:
+        issues.append(f"weak key < {min_key} bit")
 
-        days_left_str = f"{days_left} days"
-        print(
-            f"{domain:<22} {issuer:<15} {days_left_str:<12} {status:<10} {sig_alg_display}"
-        )
+    return CertResult(
+        Domain=domain,
+        Issuer=issuer,
+        ValidTo=valid_to.isoformat() if valid_to else "",
+        DaysLeft=days_left,
+        Status=status,
+        KeyLength=key_length,
+        SignatureAlg=sig_alg,
+        Issues="; ".join(issues),
+    )
 
-        results.append(
-            {
-                "Domain": domain,
-                "Issuer": issuer,
-                "DaysLeft": days_left,
-                "Status": status,
-                "SignatureAlg": sig_alg_display,
-            }
-        )
 
-    print("\n=== Issuer Statistics ===")
-    for iss, count in issuers.items():
-        print(f"{iss:<12} : {count}")
+def load_certificates(path: Path) -> list[dict]:
+    """Прочитати JSON-масив сертифікатів; помилки -> ValueError з поясненням."""
+    try:
+        with path.open(encoding="utf-8") as file:
+            data = json.load(file)
+    except FileNotFoundError as error:
+        raise ValueError(f"файл не знайдено: {path}") from error
+    except json.JSONDecodeError as error:
+        raise ValueError(f"некоректний JSON у {path}: {error}") from error
+    if not isinstance(data, list) or not all(isinstance(item, dict) for item in data):
+        raise ValueError(f"{path} має містити JSON-масив об'єктів")
+    return data
 
-    print()
-    if expired_count > 0 or warning_count > 0:
-        logger.warning(
-            f"{expired_count} certificate(s) EXPIRED! {warning_count} certificate(s) expiring within {days_warning} days!"
-        )
 
-    out_path = Path(output_file)
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-
+def save_report(results: list[CertResult], path: Path, fmt: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    rows = [asdict(result) for result in results]
     if fmt == "csv":
-        with open(out_path, "w", newline="", encoding="utf-8") as f:
-            writer = csv.DictWriter(
-                f, fieldnames=["Domain", "Issuer", "DaysLeft", "Status", "SignatureAlg"]
-            )
+        with path.open("w", newline="", encoding="utf-8") as file:
+            writer = csv.DictWriter(file, fieldnames=FIELDS)
             writer.writeheader()
-            writer.writerows(results)
+            writer.writerows(rows)
     else:
-        with open(out_path, "w", encoding="utf-8") as f:
-            json.dump(results, f, indent=4)
-
-    logger.info(f"Report saved to {output_file}")
+        with path.open("w", encoding="utf-8") as file:
+            json.dump(rows, file, ensure_ascii=False, indent=2)
 
 
-def main():
+def print_table(results: list[CertResult], issuers: Counter) -> None:
+    print("=== Certificate Expiry & Safety Status ===")
+    header = f"{'Domain':<30} {'Issuer':<14} {'Days Left':>10}  {'Status':<8} {'Key':>5}  Signature Alg"
+    print(header)
+    print("-" * (len(header) + 12))
+    for r in results:
+        days = f"{r.DaysLeft} days" if r.DaysLeft is not None else "-"
+        alg = r.SignatureAlg + (" (WEAK)" if "weak signature" in r.Issues else "")
+        key = f"{r.KeyLength}" if r.KeyLength is not None else "?"
+        if "weak key" in r.Issues:
+            key += "!"
+        print(
+            f"{r.Domain:<30} {r.Issuer:<14} {days:>10}  {r.Status:<8} {key:>5}  {alg}"
+        )
+    print("\n=== Issuer Statistics ===")
+    for issuer, count in issuers.most_common():
+        print(f"{issuer:<14} : {count}")
+    print()
+
+
+def analyze_ssl_certificates(
+    certs_file: Path, days_warning: int, output_file: Path, fmt: str
+) -> int:
+    """Проаналізувати сертифікати; повертає код завершення (0 — успіх)."""
+    logger.info("Loading SSL certificates data from %s...", certs_file)
+    try:
+        certs = load_certificates(certs_file)
+    except ValueError as error:
+        logger.error("%s", error)
+        return 1
+
+    today = datetime.now(timezone.utc).date()
+    results = [evaluate(cert, today, days_warning) for cert in certs]
+    issuers = Counter(r.Issuer for r in results)
+    logger.info("Audited %d domain certificates (date: %s UTC).", len(results), today)
+    print_table(results, issuers)
+
+    expired = sum(r.Status == "EXPIRED" for r in results)
+    expiring = sum(r.Status == "WARNING" for r in results)
+    weak = [r for r in results if "weak" in r.Issues]
+    if expired or expiring:
+        logger.warning(
+            "%d certificate(s) EXPIRED! %d certificate(s) expiring within %d days!",
+            expired,
+            expiring,
+            days_warning,
+        )
+    for r in weak:
+        logger.warning("%s: %s", r.Domain, r.Issues)
+
+    try:
+        save_report(results, output_file, fmt)
+    except OSError as error:
+        logger.error("Не вдалося зберегти звіт %s: %s", output_file, error)
+        return 1
+    logger.info("Report saved to %s", output_file)
+    return 0
+
+
+def non_negative_int(value: str) -> int:
+    number = int(value)
+    if number < 0:
+        raise argparse.ArgumentTypeError("значення має бути >= 0")
+    return number
+
+
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Монітор термінів дії SSL/TLS сертифікатів"
+        prog="python -m labs.lab02.main analyze",
+        description="Монітор термінів дії SSL/TLS сертифікатів (варіант 10)",
     )
     parser.add_argument(
         "--certs-data",
-        default="labs/lab02/data/certificates.json",
-        help="Шлях до JSON з даними сертифікатів",
+        type=Path,
+        default=DEFAULT_CERTS,
+        help="JSON-файл із даними сертифікатів",
     )
     parser.add_argument(
-        "--days-warning", type=int, default=30, help="Поріг попередження у днях"
+        "--days-warning",
+        type=non_negative_int,
+        default=30,
+        help="поріг попередження, днів (типово 30)",
     )
     parser.add_argument(
-        "--output-report",
-        default="labs/lab02/data/ssl_expiry_report.csv",
-        help="Шлях до підсумкового звіту",
+        "--output-report", type=Path, default=DEFAULT_REPORT, help="шлях до файлу звіту"
     )
     parser.add_argument(
         "--format",
-        choices=["json", "csv"],
+        choices=["csv", "json"],
         default="csv",
-        help="Формат звіту (json або csv)",
+        help="формат звіту (типово csv)",
     )
+    return parser
 
-    args = parser.parse_args()
-    analyze_ssl_certificates(
+
+def main(argv: list[str] | None = None) -> int:
+    logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
+    args = build_parser().parse_args(argv)
+    return analyze_ssl_certificates(
         args.certs_data, args.days_warning, args.output_report, args.format
     )
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
