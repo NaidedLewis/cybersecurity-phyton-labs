@@ -1,9 +1,0 @@
-Domain,Issuer,DaysLeft,Status,SignatureAlg
-ok.example.invalid,Let's Encrypt,0,WARNING,Unknown
-soon.example.invalid,Let's Encrypt,0,WARNING,Unknown
-expired.example.invalid,DigiCert,0,WARNING,Unknown
-weak-sha1.example.invalid,Legacy CA,0,WARNING,Unknown
-weak-md5.example.invalid,Legacy CA,0,WARNING,Unknown
-ecdsa.example.invalid,Sectigo,0,WARNING,Unknown
-warning-edge.example.invalid,DigiCert,0,WARNING,Unknown
-later.example.invalid,Sectigo,0,WARNING,Unknown

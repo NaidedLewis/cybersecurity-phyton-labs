@@ -8,3 +8,7 @@ Pygments==2.19.2
 rich==14.2.0
 ruff==0.16.7
 typing_extensions==4.15.0
+fastapi==0.162.0
+starlette==1.7.0
+pydantic==2.13.5
+uvicorn==0.54.0
