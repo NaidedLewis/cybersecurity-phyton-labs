@@ -6,6 +6,12 @@ python -m labs.lab02.main analyze [--certs-data ...] [--days-warning N] ...
 
 import sys
 from datetime import timedelta
+from pathlib import Path
+
+if __package__ in (None, ""):
+    # Запуск файлом (python labs/lab02/main.py або зелена кнопка PyCharm):
+    # додаємо корінь репозиторію, щоб працював імпорт labs.lab02
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from labs.lab02.task1 import SESSION_TIMEOUT_SEC, Admin, User, UserAccount
 from labs.lab02.task2 import main as run_analyze

@@ -1,9 +1,9 @@
 Domain,Issuer,ValidTo,DaysLeft,Status,KeyLength,SignatureAlg,Issues
-ok.example.invalid,Let's Encrypt,2026-11-29,31,OK,2048,sha256WithRSAEncryption,
-soon.example.invalid,Let's Encrypt,2026-10-10,-19,EXPIRED,2048,sha256WithRSAEncryption,
-expired.example.invalid,DigiCert,2026-09-20,-39,EXPIRED,2048,sha256WithRSAEncryption,
-weak-sha1.example.invalid,Legacy CA,2027-01-01,64,OK,2048,sha1WithRSAEncryption,weak signature
-weak-md5.example.invalid,Legacy CA,2027-02-01,95,OK,1024,md5WithRSAEncryption,weak signature; weak key < 2048 bit
-ecdsa.example.invalid,Sectigo,2026-12-01,33,OK,256,ecdsa-with-SHA256,
-warning-edge.example.invalid,DigiCert,2026-10-27,-2,EXPIRED,2048,sha256WithRSAEncryption,
-later.example.invalid,Sectigo,2027-09-01,307,OK,4096,sha384WithRSAEncryption,
+ok.example.invalid,Let's Encrypt,2026-11-29,30,WARNING,2048,sha256WithRSAEncryption,
+soon.example.invalid,Let's Encrypt,2026-10-10,-20,EXPIRED,2048,sha256WithRSAEncryption,
+expired.example.invalid,DigiCert,2026-09-20,-40,EXPIRED,2048,sha256WithRSAEncryption,
+weak-sha1.example.invalid,Legacy CA,2027-01-01,63,OK,2048,sha1WithRSAEncryption,weak signature
+weak-md5.example.invalid,Legacy CA,2027-02-01,94,OK,1024,md5WithRSAEncryption,weak signature; weak key < 2048 bit
+ecdsa.example.invalid,Sectigo,2026-12-01,32,OK,256,ecdsa-with-SHA256,
+warning-edge.example.invalid,DigiCert,2026-10-27,-3,EXPIRED,2048,sha256WithRSAEncryption,
+later.example.invalid,Sectigo,2027-09-01,306,OK,4096,sha384WithRSAEncryption,

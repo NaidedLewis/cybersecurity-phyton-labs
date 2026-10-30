@@ -218,5 +218,49 @@
             "WrongPass"
         ],
         "kwargs": {}
+    },
+    {
+        "event": "login",
+        "user": "admin",
+        "result": "success",
+        "timestamp": "2026-10-01 21:22:33",
+        "args": [
+            "admin",
+            "Social@Engineer"
+        ],
+        "kwargs": {}
+    },
+    {
+        "event": "login",
+        "user": "user1",
+        "result": "failure",
+        "timestamp": "2026-10-01 21:22:33",
+        "args": [
+            "user1",
+            "WrongPass"
+        ],
+        "kwargs": {}
+    },
+    {
+        "event": "login",
+        "user": "admin",
+        "result": "success",
+        "timestamp": "2026-10-01 21:23:16",
+        "args": [
+            "admin",
+            "Social@Engineer"
+        ],
+        "kwargs": {}
+    },
+    {
+        "event": "login",
+        "user": "user1",
+        "result": "failure",
+        "timestamp": "2026-10-01 21:23:16",
+        "args": [
+            "user1",
+            "WrongPass"
+        ],
+        "kwargs": {}
     }
 ]

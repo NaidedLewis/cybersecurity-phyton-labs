@@ -5,6 +5,7 @@ import csv
 import json
 import logging
 import re
+import sys
 from collections import Counter
 from dataclasses import asdict, dataclass
 from datetime import date, datetime, timezone
@@ -12,8 +13,10 @@ from pathlib import Path
 
 logger = logging.getLogger("ssl_monitor")
 
-DEFAULT_CERTS = Path("labs/lab02/data/data_v10/certificates.json")
-DEFAULT_REPORT = Path("labs/lab02/data/ssl_expiry_report.csv")
+# Шляхи рахуються від цього файлу, тому працюють з будь-якої робочої теки
+DATA_DIR = Path(__file__).resolve().parent / "data"
+DEFAULT_CERTS = DATA_DIR / "data_v10" / "certificates.json"
+DEFAULT_REPORT = DATA_DIR / "ssl_expiry_report.csv"
 
 # Застарілі алгоритми підпису: SHA-1 та MD5
 WEAK_SIGNATURE = re.compile(r"sha-?1(?!\d)|md5", re.IGNORECASE)
@@ -255,7 +258,14 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
-    logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
+    # Журнал пишемо в stdout: PyCharm не фарбує його в червоний,
+    # і повідомлення йдуть у тому ж порядку, що й таблиця
+    logging.basicConfig(
+        level=logging.INFO,
+        format="[%(levelname)s] %(message)s",
+        stream=sys.stdout,
+        force=True,
+    )
     args = build_parser().parse_args(argv)
     return analyze_ssl_certificates(
         args.certs_data, args.days_warning, args.output_report, args.format

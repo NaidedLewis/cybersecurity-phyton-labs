@@ -6,15 +6,15 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"
 from shared.student import STUDENT_NAME, VARIANT_NUMBER
 
 passwords = [
-    "S0cial@Engineer",
+    "Social@Engineer",
     "basic",
-    "Phish1ng@D3tect",
+    "Phishing@D3tect",
     "client",
     "Ransomwar3@Protect",
     "general",
     "Zero@D4y",
     "generic",
-    "Bug@B0unty",
+    "Bug@Bounty",
     "standard123",
 ]
 

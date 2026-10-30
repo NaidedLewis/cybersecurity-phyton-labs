@@ -208,3 +208,15 @@ class UserAccount:
         if not isinstance(value, expected):
             raise TypeError(f"'{key}' має бути екземпляром {expected.__name__}")
         setattr(self, key, value)
+
+
+if __name__ == "__main__":
+    # Запуск task1.py напряму показує демонстрацію з main.py;
+    # при імпорті (import task1) цей блок не виконується
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+    from labs.lab02.main import run_demo
+
+    run_demo()
